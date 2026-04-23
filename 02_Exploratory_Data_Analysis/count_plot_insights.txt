@@ -1,8 +1,0 @@
-Phase 2 (Chunk 1): Count Plot Insights
-=============================================
-Total records analyzed: 8
-
-weather: Most accidents are in 'Clear' for 'weather' (3/8, 37.5%).
-time: Most accidents are in 'Night' for 'time' (3/8, 37.5%).
-road_type: Most accidents are in 'Highway' for 'road_type' (3/8, 37.5%).
-severity: Most accidents are in 'Low' for 'severity' (3/8, 37.5%).

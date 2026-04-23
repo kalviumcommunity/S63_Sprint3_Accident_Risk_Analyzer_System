@@ -41,6 +41,12 @@ service-account*.json
 data/raw_data/*.csv
 data/processed_data/*.csv
 data/models/*.pkl
+!data/processed_data/.gitkeep
+
+# Generated EDA artifacts
+02_Exploratory_Data_Analysis/plots/*.png
+02_Exploratory_Data_Analysis/*_insights.txt
+!02_Exploratory_Data_Analysis/plots/.gitkeep
 
 # Jupyter
 .ipynb_checkpoints/
