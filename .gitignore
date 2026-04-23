@@ -11,6 +11,31 @@ env/
 
 # Environment files
 .env
+.env.*
+!.env.example
+
+# Secrets and credentials
+secrets.*
+*.secret
+*.secrets
+*.credentials
+credentials.*
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Cloud and service credentials
+.aws/
+.azure/
+gcp-service-account*.json
+service-account*.json
+
+# Streamlit local secrets
+.streamlit/secrets.toml
 
 # Data and model artifacts
 data/raw_data/*.csv

@@ -1,0 +1,7 @@
+Phase 2 (Chunk 2): Additional Plot Insights
+==================================================
+Total records analyzed: 8
+
+line_plot: Accident trend peaks at 'Night' with 3 accidents.
+scatter_plot: Average severity is highest during 'Night' (mean severity score 3.00).
+box_plot: Outlier check using IQR found 0 potential outlier(s) in severity scores.
