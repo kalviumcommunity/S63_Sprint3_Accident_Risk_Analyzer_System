@@ -41,6 +41,8 @@ service-account*.json
 data/raw_data/*.csv
 data/processed_data/*.csv
 data/models/*.pkl
+data/models/*.joblib
+data/models/*.txt
 !data/processed_data/.gitkeep
 
 # Generated EDA artifacts
