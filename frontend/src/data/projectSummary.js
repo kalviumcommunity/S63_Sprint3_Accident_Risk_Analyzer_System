@@ -73,3 +73,45 @@ export const quickRunSteps = [
   '4. Phase 4 trains the model and saves the artifact',
   '5. Phase 6 lets the user predict severity from the UI',
 ]
+
+export const insightsChartData = {
+  timeData: [
+    { label: 'Morning', count: 2 },
+    { label: 'Afternoon', count: 1 },
+    { label: 'Evening', count: 2 },
+    { label: 'Night', count: 3 },
+  ],
+  weatherData: [
+    { label: 'Clear', count: 3 },
+    { label: 'Rain', count: 3 },
+    { label: 'Fog', count: 2 },
+  ],
+  severityData: [
+    { label: 'Low', count: 3 },
+    { label: 'Medium', count: 2 },
+    { label: 'High', count: 3 },
+  ],
+}
+
+export const flowSteps = [
+  {
+    title: 'Collect Data',
+    description: 'Fetch accident records from MongoDB Atlas into a structured DataFrame.',
+  },
+  {
+    title: 'Explore Patterns',
+    description: 'Visualize weather, time, road type, and severity trends with EDA charts.',
+  },
+  {
+    title: 'Preprocess Data',
+    description: 'Handle missing values, encode categories, and generate model-ready features.',
+  },
+  {
+    title: 'Train Model',
+    description: 'Fit a RandomForest classifier and evaluate its predictive performance.',
+  },
+  {
+    title: 'Predict Risk',
+    description: 'Use the frontend form to generate severity and risk-level outcomes.',
+  },
+]
