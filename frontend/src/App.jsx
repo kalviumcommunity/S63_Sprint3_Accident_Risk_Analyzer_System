@@ -2,19 +2,26 @@ import { motion } from 'framer-motion'
 import {
   ArrowRight,
   BarChart3,
-  Brain,
   Database,
   Layers3,
-  Route,
   ShieldCheck,
   Sparkles,
   Workflow,
 } from 'lucide-react'
 
+import HowItWorksFlow from './components/HowItWorksFlow'
+import InsightsCharts from './components/InsightsCharts'
 import PhaseTimelineCard from './components/PhaseTimelineCard'
-import ProjectStatCard from './components/ProjectStatCard'
 import PredictionDemoCard from './components/PredictionDemoCard'
-import { phaseCards, projectStats, quickRunSteps } from './data/projectSummary'
+import ProjectStatCard from './components/ProjectStatCard'
+import TopSectionNav from './components/TopSectionNav'
+import {
+  flowSteps,
+  insightsChartData,
+  phaseCards,
+  projectStats,
+  quickRunSteps,
+} from './data/projectSummary'
 
 const heroHighlights = [
   'Data connection from MongoDB Atlas',
@@ -27,7 +34,9 @@ const heroHighlights = [
 function App() {
   return (
     <main className="min-h-screen text-slate-900">
-      <section className="relative overflow-hidden border-b border-slate-200/70">
+      <TopSectionNav />
+
+      <section id="hero" className="relative overflow-hidden border-b border-slate-200/70">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.18),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.12),transparent_22%)]" />
         <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8 lg:px-8">
           <header className="flex flex-col gap-4 rounded-3xl border border-white/60 bg-white/70 px-5 py-4 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
@@ -65,9 +74,8 @@ function App() {
                     See every completed phase, output, and next action in one place.
                   </h2>
                   <p className="max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-                    This frontend is being built to make the whole accident-risk workflow easy to understand:
-                    how the data enters, how it is analyzed, how the model is trained, and how predictions
-                    are produced for a user-friendly demo.
+                    This frontend organizes the entire accident-risk workflow so users can quickly
+                    understand data input, analysis, model training, and final prediction behavior.
                   </p>
                 </div>
               </div>
@@ -87,10 +95,10 @@ function App() {
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <a
-                  href="#prediction"
+                  href="#insights"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-50"
                 >
-                  View sample prediction
+                  View interactive charts
                 </a>
               </div>
 
@@ -162,12 +170,12 @@ function App() {
                 </div>
                 <p className="mt-4 text-sm leading-7 text-blue-50/90">
                   The project was built in separate phases, so the frontend should communicate the sequence,
-                  the outputs, and the final prediction behavior without forcing the user to jump through files.
+                  outputs, and final prediction behavior without forcing the user to jump through files.
                 </p>
                 <div className="mt-5 grid gap-3 text-sm text-blue-50">
                   <div className="rounded-2xl bg-white/10 p-4">Simple explanation of each phase</div>
                   <div className="rounded-2xl bg-white/10 p-4">Quick access to results and metrics</div>
-                  <div className="rounded-2xl bg-white/10 p-4">Prediction-ready layout for live input handling</div>
+                  <div className="rounded-2xl bg-white/10 p-4">Prediction-ready interaction section</div>
                 </div>
               </div>
             </motion.aside>
@@ -198,6 +206,29 @@ function App() {
         </div>
       </section>
 
+      <section id="insights" className="border-t border-slate-200 bg-white/70">
+        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+          <div className="mb-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-blue-700">
+              Insight charts
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+              Visual summaries from your current dataset.
+            </h2>
+            <p className="mt-3 max-w-3xl text-base leading-8 text-slate-600">
+              These charts mirror the project EDA outputs and make the trend findings visible directly
+              inside the frontend dashboard.
+            </p>
+          </div>
+
+          <InsightsCharts
+            timeData={insightsChartData.timeData}
+            weatherData={insightsChartData.weatherData}
+            severityData={insightsChartData.severityData}
+          />
+        </div>
+      </section>
+
       <section id="prediction" className="border-t border-slate-200 bg-white/70">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
@@ -205,15 +236,30 @@ function App() {
               Prediction snapshot
             </p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              A simple example of the risk output users will see.
+              Try conditions and see immediate risk output.
             </h2>
             <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
-              The final frontend will keep the interaction clear: choose time, weather, and road type;
-              then immediately see the predicted severity and risk level.
+              Choose time, weather, and road type to generate severity and risk-level output in real-time.
+              This section is intentionally simple for demo and explanation clarity.
             </p>
           </div>
 
           <PredictionDemoCard />
+        </div>
+      </section>
+
+      <section id="how-it-works" className="border-t border-slate-200 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+          <div className="mb-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-blue-700">
+              How it works
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+              End-to-end flow from raw data to user prediction.
+            </h2>
+          </div>
+
+          <HowItWorksFlow steps={flowSteps} />
         </div>
       </section>
 
@@ -222,7 +268,7 @@ function App() {
           <p>Traffic Accident Analysis & Risk Prediction System</p>
           <p className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Frontend foundation ready for step-by-step enhancement
+            Frontend Part 3: charts, guided navigation, and flow visualization
           </p>
         </div>
       </footer>
