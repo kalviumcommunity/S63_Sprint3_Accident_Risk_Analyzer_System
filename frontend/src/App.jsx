@@ -1,3 +1,5 @@
+import { lazy, Suspense } from 'react'
+
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -9,8 +11,6 @@ import {
   Workflow,
 } from 'lucide-react'
 
-import HowItWorksFlow from './components/HowItWorksFlow'
-import InsightsCharts from './components/InsightsCharts'
 import PhaseTimelineCard from './components/PhaseTimelineCard'
 import PredictionDemoCard from './components/PredictionDemoCard'
 import ProjectStatCard from './components/ProjectStatCard'
@@ -22,6 +22,23 @@ import {
   projectStats,
   quickRunSteps,
 } from './data/projectSummary'
+
+const InsightsCharts = lazy(() => import('./components/InsightsCharts'))
+const HowItWorksFlow = lazy(() => import('./components/HowItWorksFlow'))
+
+function SectionLoadingPlaceholder({ label }) {
+  return (
+    <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">{label}</p>
+      <div className="mt-4 h-5 w-1/3 rounded bg-slate-200" />
+      <div className="mt-6 grid gap-3">
+        <div className="h-16 rounded-2xl bg-slate-100" />
+        <div className="h-16 rounded-2xl bg-slate-100" />
+        <div className="h-16 rounded-2xl bg-slate-100" />
+      </div>
+    </div>
+  )
+}
 
 const heroHighlights = [
   'Data connection from MongoDB Atlas',
@@ -221,11 +238,13 @@ function App() {
             </p>
           </div>
 
-          <InsightsCharts
-            timeData={insightsChartData.timeData}
-            weatherData={insightsChartData.weatherData}
-            severityData={insightsChartData.severityData}
-          />
+          <Suspense fallback={<SectionLoadingPlaceholder label="Loading charts" />}>
+            <InsightsCharts
+              timeData={insightsChartData.timeData}
+              weatherData={insightsChartData.weatherData}
+              severityData={insightsChartData.severityData}
+            />
+          </Suspense>
         </div>
       </section>
 
@@ -259,7 +278,9 @@ function App() {
             </h2>
           </div>
 
-          <HowItWorksFlow steps={flowSteps} />
+          <Suspense fallback={<SectionLoadingPlaceholder label="Loading flow" />}>
+            <HowItWorksFlow steps={flowSteps} />
+          </Suspense>
         </div>
       </section>
 
