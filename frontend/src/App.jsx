@@ -13,6 +13,7 @@ import {
 
 import PhaseTimelineCard from './components/PhaseTimelineCard'
 import ProjectStatCard from './components/ProjectStatCard'
+import PredictionDemoCard from './components/PredictionDemoCard'
 import { phaseCards, projectStats, quickRunSteps } from './data/projectSummary'
 
 const heroHighlights = [
@@ -22,18 +23,6 @@ const heroHighlights = [
   'RandomForest model with reusable prediction pipeline',
   'Streamlit frontend for simple severity prediction',
 ]
-
-const samplePrediction = {
-  inputs: {
-    time: 'Night',
-    weather: 'Rain',
-    roadType: 'Highway',
-  },
-  output: {
-    severity: 'High',
-    risk: 'High Risk',
-  },
-}
 
 function App() {
   return (
@@ -125,19 +114,19 @@ function App() {
                   </p>
                   <div className="mt-4 space-y-3 text-sm text-slate-200">
                     <p>
-                      <span className="text-slate-400">Time:</span> {samplePrediction.inputs.time}
+                      <span className="text-slate-400">Time:</span> Night
                     </p>
                     <p>
-                      <span className="text-slate-400">Weather:</span> {samplePrediction.inputs.weather}
+                      <span className="text-slate-400">Weather:</span> Rain
                     </p>
                     <p>
-                      <span className="text-slate-400">Road Type:</span> {samplePrediction.inputs.roadType}
+                      <span className="text-slate-400">Road Type:</span> Highway
                     </p>
                   </div>
                   <div className="mt-5 rounded-2xl bg-white/10 p-4">
                     <p className="text-sm text-slate-300">Predicted severity</p>
-                    <p className="text-2xl font-semibold text-white">{samplePrediction.output.severity}</p>
-                    <p className="text-sm text-slate-300">Risk level: {samplePrediction.output.risk}</p>
+                    <p className="text-2xl font-semibold text-white">High</p>
+                    <p className="text-sm text-slate-300">Risk level: High Risk</p>
                   </div>
                 </div>
               </div>
@@ -224,32 +213,7 @@ function App() {
             </p>
           </div>
 
-          <div className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/10 sm:grid-cols-3">
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">Time</p>
-              <p className="mt-3 text-2xl font-semibold">{samplePrediction.inputs.time}</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">Weather</p>
-              <p className="mt-3 text-2xl font-semibold">{samplePrediction.inputs.weather}</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">Road Type</p>
-              <p className="mt-3 text-2xl font-semibold">{samplePrediction.inputs.roadType}</p>
-            </div>
-            <div className="sm:col-span-3 rounded-2xl border border-white/10 bg-blue-600/20 p-5">
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="text-sm text-blue-100">Predicted severity</p>
-                  <p className="mt-2 text-4xl font-semibold text-white">{samplePrediction.output.severity}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-blue-100">Mapped risk level</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{samplePrediction.output.risk}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <PredictionDemoCard />
         </div>
       </section>
 
