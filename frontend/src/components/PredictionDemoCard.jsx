@@ -1,167 +1,149 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowRight, BadgeInfo, BadgePercent } from 'lucide-react'
+import { useMemo, useState } from 'react';
+import { ArrowRight, ShieldCheck, Shield, ShieldAlert } from 'lucide-react';
+import { getPredictionOptions, predictAccidentSeverity } from '../services/predictionRules';
 
-import { getPredictionOptions, predictAccidentSeverity } from '../services/predictionRules'
+const initialState = { time: 'Night', weather: 'Rain', roadType: 'Highway' };
 
-const initialState = {
-  time: 'Night',
-  weather: 'Rain',
-  roadType: 'Highway',
+const severityTheme = {
+  Low: {
+    Icon: ShieldCheck,
+    card: 'border-emerald-200 bg-emerald-50/60',
+    text: 'text-emerald-600',
+    badge: 'bg-emerald-100 text-emerald-700',
+    score: 'text-emerald-600',
+  },
+  Medium: {
+    Icon: Shield,
+    card: 'border-amber-200 bg-amber-50/60',
+    text: 'text-amber-600',
+    badge: 'bg-amber-100 text-amber-700',
+    score: 'text-amber-600',
+  },
+  High: {
+    Icon: ShieldAlert,
+    card: 'border-rose-200 bg-rose-50/60',
+    text: 'text-rose-600',
+    badge: 'bg-rose-100 text-rose-700',
+    score: 'text-rose-600',
+  },
+};
+
+function SelectField({ label, name, value, options, onChange }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+        {label}
+      </span>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 export default function PredictionDemoCard() {
   const { timeOptions, weatherOptions, roadTypeOptions } = useMemo(
-    () => getPredictionOptions(),
-    [],
-  )
+    () => getPredictionOptions(), [],
+  );
 
-  const [formState, setFormState] = useState(initialState)
-  const [prediction, setPrediction] = useState(() =>
-    predictAccidentSeverity(initialState),
-  )
+  const [formState, setFormState] = useState(initialState);
+  const [prediction, setPrediction] = useState(() => predictAccidentSeverity(initialState));
 
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setFormState((current) => ({
-      ...current,
-      [name]: value,
-    }))
-  }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState((s) => ({ ...s, [name]: value }));
+  };
 
-  const handlePredict = (event) => {
-    event.preventDefault()
-    setPrediction(predictAccidentSeverity(formState))
-  }
+  const handlePredict = (e) => {
+    e.preventDefault();
+    setPrediction(predictAccidentSeverity(formState));
+  };
+
+  const theme = severityTheme[prediction.severity] || severityTheme.Low;
+  const SeverityIcon = theme.Icon;
 
   return (
-    <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.95fr_1.05fr]">
-      <form onSubmit={handlePredict} className="space-y-5">
+    <div className="grid gap-8 lg:grid-cols-2">
+      {/* ── Left: Form ───────────────────────────── */}
+      <form
+        onSubmit={handlePredict}
+        className="space-y-6 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
+      >
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-blue-700">
-            Live prediction demo
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-950">
-            Pick conditions and generate a risk output.
+          <h3 className="text-base font-semibold text-slate-800">
+            Select Conditions
           </h3>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            This frontend demo mirrors the backend prediction flow with a local scoring rule so the
-            interaction is visible even before the Streamlit layer is connected to a deployed API.
+          <p className="mt-1 text-sm text-slate-400">
+            Choose accident conditions to generate a severity prediction.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <label className="space-y-2 text-sm font-medium text-slate-700">
-            <span>Time</span>
-            <select
-              name="time"
-              value={formState.time}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white"
-            >
-              {timeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-medium text-slate-700">
-            <span>Weather</span>
-            <select
-              name="weather"
-              value={formState.weather}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white"
-            >
-              {weatherOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-medium text-slate-700">
-            <span>Road type</span>
-            <select
-              name="roadType"
-              value={formState.roadType}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white"
-            >
-              {roadTypeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-900">
-          <div className="flex items-start gap-3">
-            <BadgeInfo className="mt-0.5 h-5 w-5 flex-none text-blue-700" />
-            <div>
-              <p className="font-semibold">How the demo works</p>
-              <p className="mt-1 text-blue-800/90">
-                Higher time-of-day, weather, and road-risk scores increase the final severity. This
-                keeps the UI simple while matching the categories used by the trained model.
-              </p>
-            </div>
-          </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <SelectField label="Time" name="time" value={formState.time} options={timeOptions} onChange={handleChange} />
+          <SelectField label="Weather" name="weather" value={formState.weather} options={weatherOptions} onChange={handleChange} />
+          <SelectField label="Road Type" name="roadType" value={formState.roadType} options={roadTypeOptions} onChange={handleChange} />
         </div>
 
         <button
           type="submit"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/30"
         >
-          Predict severity
-          <ArrowRight className="h-4 w-4" />
+          Predict Severity
+          <ArrowRight size={15} />
         </button>
       </form>
 
-      <div className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/20">
-        <div className="flex items-center gap-3 text-slate-100">
-          <BadgePercent className="h-5 w-5 text-blue-300" />
-          <h4 className="text-lg font-semibold">Prediction result</h4>
-        </div>
+      {/* ── Right: Result ────────────────────────── */}
+      <div className={`flex flex-col justify-between rounded-2xl border p-7 shadow-sm transition-colors duration-500 ${theme.card}`}>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <SeverityIcon size={20} className={theme.text} />
+            <h3 className="text-base font-semibold text-slate-800">Prediction Result</h3>
+          </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white/10 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Selected time</p>
-            <p className="mt-3 text-lg font-semibold">{formState.time}</p>
+          {/* Score */}
+          <div className="mt-8">
+            <p className="text-xs uppercase tracking-wider text-slate-400">Risk Score</p>
+            <p className={`mt-1 text-5xl font-bold ${theme.score}`}>{prediction.score}</p>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Selected weather</p>
-            <p className="mt-3 text-lg font-semibold">{formState.weather}</p>
-          </div>
-          <div className="rounded-2xl bg-white/10 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Selected road</p>
-            <p className="mt-3 text-lg font-semibold">{formState.roadType}</p>
-          </div>
-        </div>
 
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6">
-          <p className="text-sm text-slate-300">Computed risk score</p>
-          <p className="mt-2 text-5xl font-semibold text-white">{prediction.score}</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <span className="rounded-full bg-blue-500/20 px-4 py-2 text-sm font-semibold text-blue-100">
-              {prediction.severity} severity
+          {/* Badges */}
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            <span className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold ${theme.badge}`}>
+              {prediction.severity} Severity
             </span>
-            <span className="rounded-full bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-100">
+            <span className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold ${theme.badge}`}>
               {prediction.riskLevel}
             </span>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-amber-500/10 p-4 text-sm leading-7 text-amber-100">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 flex-none text-amber-300" />
-            <p>{prediction.explanation}</p>
-          </div>
+        {/* Conditions */}
+        <div className="mt-8 grid grid-cols-3 gap-3">
+          {[
+            { label: 'Time', value: formState.time },
+            { label: 'Weather', value: formState.weather },
+            { label: 'Road', value: formState.roadType },
+          ].map((item) => (
+            <div key={item.label} className="rounded-xl bg-white/70 px-3.5 py-3 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">{item.label}</p>
+              <p className="mt-1 text-sm font-medium text-slate-700">{item.value}</p>
+            </div>
+          ))}
         </div>
+
+        {/* Explanation */}
+        <p className="mt-6 rounded-xl bg-white/60 px-4 py-3 text-xs leading-relaxed text-slate-500">
+          {prediction.explanation}
+        </p>
       </div>
     </div>
-  )
+  );
 }
