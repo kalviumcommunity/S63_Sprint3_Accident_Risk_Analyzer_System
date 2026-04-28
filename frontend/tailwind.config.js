@@ -5,7 +5,6 @@ export default {
     extend: {
       colors: {
         ink: '#0f172a',
-        slate: '#334155',
         mist: '#e2e8f0',
         accent: '#2563eb',
         accentSoft: '#dbeafe',
