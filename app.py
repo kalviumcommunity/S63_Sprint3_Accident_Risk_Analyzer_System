@@ -10,6 +10,7 @@ import pandas as pd
 from pymongo import MongoClient
 import matplotlib.pyplot as plt
 import seaborn as sns
+import requests
 
 # ── Config ───────────────────────────────────────────────────────────
 st.set_page_config(page_title="Accident Risk Analyzer", page_icon="🚦", layout="wide")
@@ -133,6 +134,37 @@ LOCATION_WEIGHTS = {
 }
 
 # ── Helpers ──────────────────────────────────────────────────────────
+def fetch_live_weather(city):
+    """Fetch real-time weather data using OpenWeatherMap API."""
+    api_key = os.getenv("OPENWEATHER_API_KEY", "")
+    if not api_key:
+        return None, None
+    
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city},IN&appid={api_key}"
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            raw_weather = data["weather"][0]["main"]
+            temp_k = data.get("main", {}).get("temp")
+            temp_c = round(temp_k - 273.15) if temp_k else None
+            
+            # Map to categories: Clear, Rain, Fog
+            if raw_weather in ["Clear"]:
+                mapped_weather = "Clear"
+            elif raw_weather in ["Rain", "Drizzle", "Thunderstorm"]:
+                mapped_weather = "Rain"
+            elif raw_weather in ["Fog", "Mist", "Haze", "Smoke"]:
+                mapped_weather = "Fog"
+            else:
+                mapped_weather = "Clear"
+                
+            return mapped_weather, raw_weather
+        else:
+            return None, None
+    except Exception:
+        return None, None
+
 def fetch_data():
     docs = list(collection.find({}, {"_id": 0}))
     if not docs:
@@ -274,16 +306,26 @@ elif page == "Predict":
     st.markdown('<div class="section-desc">Select conditions below to calculate a risk score (0–100) based on weighted analysis of time, weather, road type, and location.</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
     with c2:
-        p_weather = st.selectbox("🌤️ Weather", WEATHER_OPTIONS)
-    with c3:
         p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
-    with c4:
+    with c3:
         p_location = st.selectbox("📍 Location", LOCATION_OPTIONS)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── Real-time Weather Integration ────────────────────────────────
+    live_w, raw_w = fetch_live_weather(p_location)
+    weather_emoji = {"Clear": "☀️", "Rain": "🌧️", "Fog": "🌫️"}
+
+    if live_w:
+        p_weather = live_w
+        st.markdown(f"<div class='weather-card' style='padding: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-top: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;'><span style='font-size: 1.5rem;'>{weather_emoji.get(live_w, '🌦')}</span><div><div style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;'>Current Weather in {p_location}</div><div style='font-size: 1.1rem; font-weight: 700; color: #0f172a;'>{raw_w}</div></div></div>", unsafe_allow_html=True)
+    else:
+        p_weather = "Clear"
+        st.error("⚠️ Unable to fetch weather")
+        st.info("ℹ️ Falling back to default weather (Clear)")
 
     st.markdown(f"<p style='color:#2563eb;font-weight:600;margin-top:8px'>📍 Selected Location: {p_location}</p>", unsafe_allow_html=True)
 
