@@ -261,7 +261,7 @@ with st.sidebar:
     st.markdown("### 🚦 Accident Risk Analyzer")
     st.markdown("<p style='color:#64748b;font-size:13px;margin-top:-10px'>Data-driven safety insights</p>", unsafe_allow_html=True)
     st.markdown("---")
-    page = st.radio("Navigate", ["Home", "Predict", "Insights", "Add Data"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["Home", "Predict", "Map", "Insights", "Add Data"], label_visibility="collapsed")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # HOME
@@ -390,6 +390,75 @@ elif page == "Predict":
             {items_html}
         </div>
         ''', unsafe_allow_html=True)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MAP
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+elif page == "Map":
+    st.markdown('<div class="section-title">🗺️ ACCIDENT RISK MAP</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Geographical Risk Distribution</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-desc">Analyze safety levels geographically using actual user entry data mapped across India.</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    df = fetch_data()
+
+    if df.empty:
+        st.info("No data available to display on map. Go to **Add Data** to insert records.")
+    else:
+        import folium
+        
+        CITY_COORDS = {
+            "Delhi": [28.6139, 77.2090], "Mumbai": [19.0760, 72.8777],
+            "Bangalore": [12.9716, 77.5946], "Chennai": [13.0827, 80.2707],
+            "Kolkata": [22.5726, 88.3639], "Hyderabad": [17.3850, 78.4867],
+            "Pune": [18.5204, 73.8567], "Ahmedabad": [23.0225, 72.5714],
+            "Jaipur": [26.9124, 75.7873], "Lucknow": [26.8467, 80.9462],
+            "Chandigarh": [30.7333, 76.7794], "Bhopal": [23.2599, 77.4126],
+            "Indore": [22.7196, 75.8577], "Patna": [25.5941, 85.1376],
+            "Nagpur": [21.1458, 79.0882], "Kochi": [9.9312, 76.2673],
+            "Guwahati": [26.1445, 91.7362], "Dehradun": [30.3165, 78.0322],
+            "Surat": [21.1702, 72.8311], "Visakhapatnam": [17.6868, 83.2185]
+        }
+
+        # Create interactive map
+        m = folium.Map(location=[20.5937, 78.9629], zoom_start=5)
+        
+        markers_added = 0
+        for _, row in df.iterrows():
+            loc = row.get("location")
+            if loc in CITY_COORDS:
+                coords = CITY_COORDS[loc]
+                t_v = row.get("time", "Morning")
+                w_v = row.get("weather", "Clear")
+                r_v = row.get("road_type", "City")
+                
+                score, _, _, _, _ = calculate_risk_score(t_v, w_v, r_v, loc)
+                
+                # Color map ranges: 0-40 Green, 41-70 Orange, 71-100 Red
+                if score <= 40:
+                    color = "#22c55e"
+                elif score <= 70:
+                    color = "#f97316"
+                else:
+                    color = "#ef4444"
+                    
+                popup_text = f"<b>{loc}</b> — Risk: {score}%<br><i>{t_v} | {w_v} | {r_v}</i>"
+                
+                folium.CircleMarker(
+                    location=coords,
+                    radius=10,
+                    popup=folium.Popup(popup_text, max_width=200),
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.7
+                ).add_to(m)
+                markers_added += 1
+                
+        if markers_added == 0:
+            st.warning("No records with valid location coordinates found.")
+        else:
+            st.components.v1.html(m._repr_html_(), height=550)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # INSIGHTS
