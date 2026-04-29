@@ -87,7 +87,7 @@ button[kind="headerNoPadding"], [data-testid="collapsedControl"] { display: none
 """, unsafe_allow_html=True)
 
 load_dotenv()
-MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_URI = st.secrets["MONGO_URI"] if "MONGO_URI" in st.secrets else os.getenv("MONGODB_URI")
 MONGODB_DB = os.getenv("MONGODB_DB", "traffic_accident_db")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "accidents")
 
@@ -120,7 +120,7 @@ LOCATION_WEIGHTS = {
 }
 
 def fetch_live_weather(city):
-    api_key = os.getenv("OPENWEATHER_API_KEY", "")
+    api_key = st.secrets["WEATHER_API_KEY"] if "WEATHER_API_KEY" in st.secrets else os.getenv("OPENWEATHER_API_KEY", "")
     if not api_key:
         return None, None
     
