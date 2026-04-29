@@ -87,16 +87,27 @@ button[kind="headerNoPadding"], [data-testid="collapsedControl"] { display: none
 """, unsafe_allow_html=True)
 
 load_dotenv()
-MONGODB_URI = os.getenv("MONGODB_URI")
+
+try:
+    MONGODB_URI = st.secrets.get("MONGO_URI") or st.secrets.get("MONGODB_URI")
+except Exception:
+    MONGODB_URI = os.getenv("MONGODB_URI")
+
 MONGODB_DB = os.getenv("MONGODB_DB", "traffic_accident_db")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "accidents")
 
 @st.cache_resource
 def get_mongo_client():
-    return MongoClient(MONGODB_URI)
+    if not MONGODB_URI:
+        return None
+    try:
+        # Set short timeout so it doesn't hang forever
+        return MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3000)
+    except Exception:
+        return None
 
 client = get_mongo_client()
-collection = client[MONGODB_DB][MONGODB_COLLECTION]
+collection = client[MONGODB_DB][MONGODB_COLLECTION] if client is not None else None
 
 TIME_OPTIONS = ["Morning", "Afternoon", "Evening", "Night"]
 WEATHER_OPTIONS = ["Clear", "Rain", "Fog"]
@@ -120,7 +131,7 @@ LOCATION_WEIGHTS = {
 }
 
 def fetch_live_weather(city):
-    api_key = os.getenv("OPENWEATHER_API_KEY", "")
+    api_key = st.secrets["WEATHER_API_KEY"] if "WEATHER_API_KEY" in st.secrets else os.getenv("OPENWEATHER_API_KEY", "")
     if not api_key:
         return None, None
     
@@ -149,10 +160,15 @@ def fetch_live_weather(city):
         return None, None
 
 def fetch_data():
-    docs = list(collection.find({}, {"_id": 0}))
-    if not docs:
-        return pd.DataFrame(columns=["time", "weather", "road_type", "severity", "location"])
-    return pd.DataFrame(docs)
+    if collection is None:
+        return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
+    try:
+        docs = list(collection.find({}, {"_id": 0}))
+        if not docs:
+            return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
+        return pd.DataFrame(docs)
+    except Exception:
+        return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
 
 def display_html_table(df):
     cols = ["time", "weather", "road_type", "location", "severity"]
@@ -287,6 +303,9 @@ with st.sidebar:
     st.markdown("<p style='color:#64748b;font-size:13px;margin-top:-10px'>Data-driven safety insights</p>", unsafe_allow_html=True)
     st.markdown("---")
     page = st.radio("Navigate", ["Home", "Predict", "Map", "Insights", "Add Data"], label_visibility="collapsed")
+
+if collection is None:
+    st.error("🔌 **Database Offline:** Unable to reach MongoDB Atlas cluster. Verify deployment secret mapping bindings securely.")
 
 if page == "Home":
     st.markdown("""
@@ -530,63 +549,60 @@ elif page == "Insights":
 
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**🌤️ Accidents by Weather**")
-                fig, ax = plt.subplots(figsize=(5, 3.5))
-                sns.countplot(data=filtered_df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
-                ax.set_xlabel(""); ax.set_ylabel("Count")
-                for spine in ax.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig)
-                st.markdown('<div class="chart-insight">💡 Live dataset counts plotted against core weather categories.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>🌤️ Accidents by Weather</div>", unsafe_allow_html=True)
+                    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+                    sns.countplot(data=filtered_df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
+                    ax.set_xlabel(""); ax.set_ylabel("Count")
+                    for spine in ax.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Live dataset counts plotted against core weather categories.</div>', unsafe_allow_html=True)
 
             with c2:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**🕐 Accident Trend by Time**")
-                time_counts = filtered_df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
-                fig2, ax2 = plt.subplots(figsize=(5, 3.5))
-                ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
-                ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
-                ax2.set_xlabel(""); ax2.set_ylabel("Count")
-                for spine in ax2.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig2)
-                st.markdown('<div class="chart-insight">💡 Visual trends shifting across morning vs evening peaks.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>🕐 Accident Trend by Time</div>", unsafe_allow_html=True)
+                    time_counts = filtered_df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
+                    fig2, ax2 = plt.subplots(figsize=(4.5, 2.5))
+                    ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
+                    ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
+                    ax2.set_xlabel(""); ax2.set_ylabel("Count")
+                    for spine in ax2.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig2)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Visual trends shifting across morning vs evening peaks.</div>', unsafe_allow_html=True)
 
-            st.markdown("")
+            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
             c3, c4 = st.columns(2)
             with c3:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**⚠️ Severity Distribution**")
-                fig3, ax3 = plt.subplots(figsize=(5, 3.5))
-                sev = filtered_df["severity"].value_counts()
-                colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
-                ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
-                        colors=[colors.get(l, "#94a3b8") for l in sev.index],
-                        startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"})
-                plt.tight_layout()
-                st.pyplot(fig3)
-                st.markdown('<div class="chart-insight">💡 Breakdown percentages comparing severity scales.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>⚠️ Severity Distribution</div>", unsafe_allow_html=True)
+                    fig3, ax3 = plt.subplots(figsize=(4.5, 2.5))
+                    sev = filtered_df["severity"].value_counts()
+                    colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
+                    ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
+                            colors=[colors.get(l, "#94a3b8") for l in sev.index],
+                            startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"},
+                            textprops={'fontsize': 9})
+                    plt.tight_layout()
+                    st.pyplot(fig3)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Breakdown percentages comparing severity scales.</div>', unsafe_allow_html=True)
 
             with c4:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**📦 Severity by Road Type (Box Plot)**")
-                sev_map = {"Low": 1, "Medium": 2, "High": 3}
-                df_box = filtered_df.copy()
-                df_box["severity_code"] = df_box["severity"].map(sev_map)
-                fig4, ax4 = plt.subplots(figsize=(5, 3.5))
-                sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
-                            palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
-                ax4.set_xlabel(""); ax4.set_ylabel("Severity (1=Low, 3=High)")
-                for spine in ax4.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig4)
-                st.markdown('<div class="chart-insight">💡 Median score ranges defined natively per road category.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>📦 Severity by Road Type</div>", unsafe_allow_html=True)
+                    sev_map = {"Low": 1, "Medium": 2, "High": 3}
+                    df_box = filtered_df.copy()
+                    df_box["severity_code"] = df_box["severity"].map(sev_map)
+                    fig4, ax4 = plt.subplots(figsize=(4.5, 2.5))
+                    sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
+                                palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
+                    ax4.set_xlabel(""); ax4.set_ylabel("Severity (1-Low, 3-High)")
+                    for spine in ax4.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig4)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Median score ranges defined natively per road category.</div>', unsafe_allow_html=True)
 
             st.markdown("")
             with st.container(border=True):
@@ -618,11 +634,14 @@ elif page == "Add Data":
             submitted = st.form_submit_button("➕ Add Record", use_container_width=True)
 
     if submitted:
-        try:
-            collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v, "location": location_v})
-            st.success("Record added successfully ✅")
-        except Exception as e:
-            st.error(f"Error: {e}")
+        if collection is None:
+            st.error("Error: MongoDB database connection not established. Verify connection credentials securely.")
+        else:
+            try:
+                collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v, "location": location_v})
+                st.success("Record added successfully ✅")
+            except Exception as e:
+                st.error(f"Error: {e}")
 
     df = fetch_data()
     if not df.empty:

@@ -11,6 +11,12 @@ A complete **Data Science + Machine Learning** web application built with Stream
 3. **Visualize patterns** across time, weather, road type, and severity
 4. **Predict accident severity** using a trained RandomForest ML model
 
+## 📌 Problem Statement
+Road traffic accidents claim millions of lives annually and cause heavy economic burdens globally. Identifying patterns in adverse weather, tricky road conditions, and specific times of day is critical for predictive mitigation.
+
+## 💡 Solution Overview
+This platform bridges raw historical inputs with actionable ML foresight. By securely aggregating data streams across regional routes, the application calculates high-risk vectors and delivers proactive safeguards.
+
 ---
 
 ## 🛠️ Tech Stack
