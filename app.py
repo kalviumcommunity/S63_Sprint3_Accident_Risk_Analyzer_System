@@ -87,16 +87,27 @@ button[kind="headerNoPadding"], [data-testid="collapsedControl"] { display: none
 """, unsafe_allow_html=True)
 
 load_dotenv()
-MONGODB_URI = st.secrets["MONGO_URI"] if "MONGO_URI" in st.secrets else os.getenv("MONGODB_URI")
+
+try:
+    MONGODB_URI = st.secrets.get("MONGO_URI") or st.secrets.get("MONGODB_URI")
+except Exception:
+    MONGODB_URI = os.getenv("MONGODB_URI")
+
 MONGODB_DB = os.getenv("MONGODB_DB", "traffic_accident_db")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "accidents")
 
 @st.cache_resource
 def get_mongo_client():
-    return MongoClient(MONGODB_URI)
+    if not MONGODB_URI:
+        return None
+    try:
+        # Set short timeout so it doesn't hang forever
+        return MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3000)
+    except Exception:
+        return None
 
 client = get_mongo_client()
-collection = client[MONGODB_DB][MONGODB_COLLECTION]
+collection = client[MONGODB_DB][MONGODB_COLLECTION] if client is not None else None
 
 TIME_OPTIONS = ["Morning", "Afternoon", "Evening", "Night"]
 WEATHER_OPTIONS = ["Clear", "Rain", "Fog"]
@@ -149,10 +160,15 @@ def fetch_live_weather(city):
         return None, None
 
 def fetch_data():
-    docs = list(collection.find({}, {"_id": 0}))
-    if not docs:
-        return pd.DataFrame(columns=["time", "weather", "road_type", "severity", "location"])
-    return pd.DataFrame(docs)
+    if collection is None:
+        return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
+    try:
+        docs = list(collection.find({}, {"_id": 0}))
+        if not docs:
+            return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
+        return pd.DataFrame(docs)
+    except Exception:
+        return pd.DataFrame(columns=["time", "weather", "road_type", "location", "severity"])
 
 def display_html_table(df):
     cols = ["time", "weather", "road_type", "location", "severity"]
@@ -287,6 +303,9 @@ with st.sidebar:
     st.markdown("<p style='color:#64748b;font-size:13px;margin-top:-10px'>Data-driven safety insights</p>", unsafe_allow_html=True)
     st.markdown("---")
     page = st.radio("Navigate", ["Home", "Predict", "Map", "Insights", "Add Data"], label_visibility="collapsed")
+
+if collection is None:
+    st.error("🔌 **Database Offline:** Unable to reach MongoDB Atlas cluster. Verify deployment secret mapping bindings securely.")
 
 if page == "Home":
     st.markdown("""
@@ -615,11 +634,14 @@ elif page == "Add Data":
             submitted = st.form_submit_button("➕ Add Record", use_container_width=True)
 
     if submitted:
-        try:
-            collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v, "location": location_v})
-            st.success("Record added successfully ✅")
-        except Exception as e:
-            st.error(f"Error: {e}")
+        if collection is None:
+            st.error("Error: MongoDB database connection not established. Verify connection credentials securely.")
+        else:
+            try:
+                collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v, "location": location_v})
+                st.success("Record added successfully ✅")
+            except Exception as e:
+                st.error(f"Error: {e}")
 
     df = fetch_data()
     if not df.empty:
