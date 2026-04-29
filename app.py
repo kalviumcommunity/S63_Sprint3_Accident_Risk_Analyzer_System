@@ -530,63 +530,60 @@ elif page == "Insights":
 
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**🌤️ Accidents by Weather**")
-                fig, ax = plt.subplots(figsize=(5, 3.5))
-                sns.countplot(data=filtered_df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
-                ax.set_xlabel(""); ax.set_ylabel("Count")
-                for spine in ax.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig)
-                st.markdown('<div class="chart-insight">💡 Live dataset counts plotted against core weather categories.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>🌤️ Accidents by Weather</div>", unsafe_allow_html=True)
+                    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+                    sns.countplot(data=filtered_df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
+                    ax.set_xlabel(""); ax.set_ylabel("Count")
+                    for spine in ax.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Live dataset counts plotted against core weather categories.</div>', unsafe_allow_html=True)
 
             with c2:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**🕐 Accident Trend by Time**")
-                time_counts = filtered_df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
-                fig2, ax2 = plt.subplots(figsize=(5, 3.5))
-                ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
-                ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
-                ax2.set_xlabel(""); ax2.set_ylabel("Count")
-                for spine in ax2.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig2)
-                st.markdown('<div class="chart-insight">💡 Visual trends shifting across morning vs evening peaks.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>🕐 Accident Trend by Time</div>", unsafe_allow_html=True)
+                    time_counts = filtered_df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
+                    fig2, ax2 = plt.subplots(figsize=(4.5, 2.5))
+                    ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
+                    ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
+                    ax2.set_xlabel(""); ax2.set_ylabel("Count")
+                    for spine in ax2.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig2)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Visual trends shifting across morning vs evening peaks.</div>', unsafe_allow_html=True)
 
-            st.markdown("")
+            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
             c3, c4 = st.columns(2)
             with c3:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**⚠️ Severity Distribution**")
-                fig3, ax3 = plt.subplots(figsize=(5, 3.5))
-                sev = filtered_df["severity"].value_counts()
-                colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
-                ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
-                        colors=[colors.get(l, "#94a3b8") for l in sev.index],
-                        startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"})
-                plt.tight_layout()
-                st.pyplot(fig3)
-                st.markdown('<div class="chart-insight">💡 Breakdown percentages comparing severity scales.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>⚠️ Severity Distribution</div>", unsafe_allow_html=True)
+                    fig3, ax3 = plt.subplots(figsize=(4.5, 2.5))
+                    sev = filtered_df["severity"].value_counts()
+                    colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
+                    ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
+                            colors=[colors.get(l, "#94a3b8") for l in sev.index],
+                            startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"},
+                            textprops={'fontsize': 9})
+                    plt.tight_layout()
+                    st.pyplot(fig3)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Breakdown percentages comparing severity scales.</div>', unsafe_allow_html=True)
 
             with c4:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**📦 Severity by Road Type (Box Plot)**")
-                sev_map = {"Low": 1, "Medium": 2, "High": 3}
-                df_box = filtered_df.copy()
-                df_box["severity_code"] = df_box["severity"].map(sev_map)
-                fig4, ax4 = plt.subplots(figsize=(5, 3.5))
-                sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
-                            palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
-                ax4.set_xlabel(""); ax4.set_ylabel("Severity (1=Low, 3=High)")
-                for spine in ax4.spines.values(): spine.set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig4)
-                st.markdown('<div class="chart-insight">💡 Median score ranges defined natively per road category.</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("<div style='font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; color: #0f172a;'>📦 Severity by Road Type</div>", unsafe_allow_html=True)
+                    sev_map = {"Low": 1, "Medium": 2, "High": 3}
+                    df_box = filtered_df.copy()
+                    df_box["severity_code"] = df_box["severity"].map(sev_map)
+                    fig4, ax4 = plt.subplots(figsize=(4.5, 2.5))
+                    sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
+                                palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
+                    ax4.set_xlabel(""); ax4.set_ylabel("Severity (1-Low, 3-High)")
+                    for spine in ax4.spines.values(): spine.set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig4)
+                    st.markdown('<div class="chart-insight" style="margin-top: 12px;">💡 Median score ranges defined natively per road category.</div>', unsafe_allow_html=True)
 
             st.markdown("")
             with st.container(border=True):
