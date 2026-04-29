@@ -114,26 +114,39 @@ TIME_OPTIONS = ["Morning", "Afternoon", "Evening", "Night"]
 WEATHER_OPTIONS = ["Clear", "Rain", "Fog"]
 ROAD_TYPE_OPTIONS = ["Highway", "City", "Rural"]
 SEVERITY_OPTIONS = ["Low", "Medium", "High"]
+LOCATION_OPTIONS = [
+    "Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata",
+    "Hyderabad", "Pune", "Ahmedabad", "Jaipur", "Lucknow",
+    "Chandigarh", "Bhopal", "Indore", "Patna", "Nagpur",
+    "Kochi", "Guwahati", "Dehradun", "Surat", "Visakhapatnam",
+]
 
 # Risk score weights
 TIME_WEIGHTS = {"Morning": 20, "Afternoon": 30, "Evening": 50, "Night": 80}
 WEATHER_WEIGHTS = {"Clear": 10, "Rain": 60, "Fog": 70}
 ROAD_WEIGHTS = {"City": 30, "Highway": 70, "Rural": 50}
+LOCATION_WEIGHTS = {
+    "Mumbai": 10, "Delhi": 8, "Kolkata": 7, "Chennai": 7, "Bangalore": 5,
+    "Hyderabad": 5, "Pune": 5, "Ahmedabad": 5, "Lucknow": 6, "Patna": 7,
+    "Jaipur": 4, "Chandigarh": 3, "Bhopal": 4, "Indore": 4, "Nagpur": 4,
+    "Kochi": 5, "Guwahati": 6, "Dehradun": 5, "Surat": 5, "Visakhapatnam": 4,
+}
 
 # ── Helpers ──────────────────────────────────────────────────────────
 def fetch_data():
     docs = list(collection.find({}, {"_id": 0}))
     if not docs:
-        return pd.DataFrame(columns=["time", "weather", "road_type", "severity"])
+        return pd.DataFrame(columns=["time", "weather", "road_type", "severity", "location"])
     return pd.DataFrame(docs)
 
-def calculate_risk_score(time_v, weather_v, road_v):
-    """Calculate risk score 0–100 from weighted inputs."""
+def calculate_risk_score(time_v, weather_v, road_v, location_v):
+    """Calculate risk score 0–100 from weighted inputs + location bonus."""
     t = TIME_WEIGHTS[time_v]
     w = WEATHER_WEIGHTS[weather_v]
     r = ROAD_WEIGHTS[road_v]
-    score = round((t + w + r) / 3)
-    return score, t, w, r
+    l = LOCATION_WEIGHTS.get(location_v, 0)
+    score = min(round((t + w + r) / 3 + l), 100)
+    return score, t, w, r, l
 
 def classify_risk(score):
     """Map score to risk level."""
@@ -144,7 +157,7 @@ def classify_risk(score):
     else:
         return "High", "high"
 
-def get_recommendations(time_v, weather_v, road_v, level):
+def get_recommendations(time_v, weather_v, road_v, location_v, level):
     """Generate smart safety recommendations based on conditions."""
     tips = []
 
@@ -182,6 +195,32 @@ def get_recommendations(time_v, weather_v, road_v, level):
         tips.append(("🏔️", "Watch for unmarked roads, sharp curves, and wildlife."))
     elif road_v == "City":
         tips.append(("🏙️", "Watch for pedestrians, cyclists, and frequent signal changes."))
+
+    # Location-based tips
+    loc_tips = {
+        "Mumbai": "Mumbai sees heavy monsoon rainfall — waterlogging and flooding are common. Avoid low-lying routes.",
+        "Delhi": "Delhi has dense traffic, smog, and poor winter visibility. Keep safe distance and use low beams.",
+        "Kolkata": "Kolkata has narrow roads and heavy monsoon flooding. Avoid underpasses during rain.",
+        "Chennai": "Chennai is prone to cyclonic weather. Stay updated on weather alerts during monsoon.",
+        "Bangalore": "Bangalore has frequent road construction and potholes. Watch for diversions and uneven surfaces.",
+        "Hyderabad": "Hyderabad has fast-expanding road networks. Watch for unmarked speed breakers.",
+        "Pune": "Pune has hilly terrain on outskirts. Drive carefully on expressway curves.",
+        "Ahmedabad": "Ahmedabad has wide roads but aggressive driving patterns. Maintain lane discipline.",
+        "Jaipur": "Jaipur has mixed traffic with heavy vehicles and animals. Stay alert at intersections.",
+        "Lucknow": "Lucknow has narrow old-city roads. Be cautious in congested areas.",
+        "Chandigarh": "Chandigarh has well-planned roads but high-speed traffic. Obey speed limits.",
+        "Bhopal": "Bhopal has hilly roads with sharp turns. Use low gear on slopes.",
+        "Indore": "Indore has rapid urbanization — watch for ongoing construction zones.",
+        "Patna": "Patna has poor road infrastructure in many areas. Drive cautiously on damaged roads.",
+        "Nagpur": "Nagpur is a major highway junction. Stay alert for heavy trucks.",
+        "Kochi": "Kochi receives heavy rainfall. Roads can be slippery and waterlogged.",
+        "Guwahati": "Guwahati has hilly terrain and frequent landslides during monsoon.",
+        "Dehradun": "Dehradun has mountain roads with steep curves. Avoid overtaking on blind turns.",
+        "Surat": "Surat has fast traffic on BRTS corridors. Follow bus lane rules.",
+        "Visakhapatnam": "Visakhapatnam has coastal weather and cyclone risk. Check alerts before traveling.",
+    }
+    if location_v in loc_tips:
+        tips.append(("📍", loc_tips[location_v]))
 
     return tips
 
@@ -232,20 +271,24 @@ if page == "Home":
 elif page == "Predict":
     st.markdown('<div class="section-title">⚡ RISK ASSESSMENT</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Predict Accident Risk</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-desc">Select conditions below to calculate a risk score (0–100) based on weighted analysis of time, weather, and road type.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-desc">Select conditions below to calculate a risk score (0–100) based on weighted analysis of time, weather, road type, and location.</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
     with c2:
         p_weather = st.selectbox("🌤️ Weather", WEATHER_OPTIONS)
     with c3:
         p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
+    with c4:
+        p_location = st.selectbox("📍 Location", LOCATION_OPTIONS)
     st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown(f"<p style='color:#2563eb;font-weight:600;margin-top:8px'>📍 Selected Location: {p_location}</p>", unsafe_allow_html=True)
+
     if st.button("🔍 Predict Risk", use_container_width=True):
-        score, t_w, w_w, r_w = calculate_risk_score(p_time, p_weather, p_road)
+        score, t_w, w_w, r_w, l_w = calculate_risk_score(p_time, p_weather, p_road, p_location)
         level, css_key = classify_risk(score)
 
         risk_emoji = {"Low": "✅", "Medium": "⚠️", "High": "🚨"}
@@ -280,19 +323,21 @@ elif page == "Predict":
 
         # Breakdown cards
         st.markdown('<div class="section-title" style="margin-bottom:12px">SCORE BREAKDOWN</div>', unsafe_allow_html=True)
-        b1, b2, b3 = st.columns(3)
+        b1, b2, b3, b4 = st.columns(4)
         with b1:
             st.markdown(f'<div class="breakdown-card"><div class="bk-label">🕐 Time</div><div class="bk-value">{p_time}</div><div class="bk-weight">Weight: {t_w}/80</div></div>', unsafe_allow_html=True)
         with b2:
             st.markdown(f'<div class="breakdown-card"><div class="bk-label">🌤️ Weather</div><div class="bk-value">{p_weather}</div><div class="bk-weight">Weight: {w_w}/70</div></div>', unsafe_allow_html=True)
         with b3:
             st.markdown(f'<div class="breakdown-card"><div class="bk-label">🛣️ Road Type</div><div class="bk-value">{p_road}</div><div class="bk-weight">Weight: {r_w}/70</div></div>', unsafe_allow_html=True)
+        with b4:
+            st.markdown(f'<div class="breakdown-card"><div class="bk-label">📍 Location</div><div class="bk-value">{p_location}</div><div class="bk-weight">Bonus: +{l_w}</div></div>', unsafe_allow_html=True)
 
         st.markdown("")
-        st.markdown(f'<div class="chart-insight">💡 Score = ({t_w} + {w_w} + {r_w}) / 3 = <b>{score}</b> → Classification: <b>{level} Risk</b></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chart-insight">💡 Score = ({t_w} + {w_w} + {r_w}) / 3 + {l_w} = <b>{score}</b> → Classification: <b>{level} Risk</b></div>', unsafe_allow_html=True)
 
         # Smart Recommendations
-        tips = get_recommendations(p_time, p_weather, p_road, level)
+        tips = get_recommendations(p_time, p_weather, p_road, p_location, level)
         items_html = "".join(
             f'<div class="reco-item"><span class="reco-icon">{icon}</span><span>{text}</span></div>'
             for icon, text in tips
@@ -317,6 +362,15 @@ elif page == "Insights":
     if df.empty:
         st.info("No data available yet. Go to **Add Data** to insert records.")
     else:
+        # Location filter
+        if "location" in df.columns and not df["location"].isna().all():
+            loc_filter = st.selectbox("📍 Filter by Location", ["All Locations"] + LOCATION_OPTIONS)
+            if loc_filter != "All Locations":
+                df = df[df["location"] == loc_filter]
+                st.markdown(f"<p style='color:#2563eb;font-weight:600'>📍 Showing data for: {loc_filter} ({len(df)} records)</p>", unsafe_allow_html=True)
+                if df.empty:
+                    st.info(f"No records found for {loc_filter}. Add some data first.")
+                    st.stop()
         sns.set_theme(style="whitegrid", font="Inter")
 
         # Row 1: Bar + Line
@@ -412,6 +466,7 @@ elif page == "Add Data":
         with c1:
             time_v = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
             weather_v = st.selectbox("🌤️ Weather Condition", WEATHER_OPTIONS)
+            location_v = st.selectbox("📍 Location", LOCATION_OPTIONS)
         with c2:
             road_v = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
             severity_v = st.selectbox("⚠️ Severity Level", SEVERITY_OPTIONS)
@@ -421,7 +476,7 @@ elif page == "Add Data":
 
     if submitted:
         try:
-            collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v})
+            collection.insert_one({"time": time_v, "weather": weather_v, "road_type": road_v, "severity": severity_v, "location": location_v})
             st.success("Record added successfully ✅")
         except Exception as e:
             st.error(f"Error: {e}")
