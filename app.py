@@ -1,8 +1,3 @@
-"""
-Traffic Accident Risk Analyzer — Premium Streamlit App
-Run:  python -m streamlit run app.py
-"""
-
 import os
 from dotenv import load_dotenv
 import streamlit as st
@@ -12,44 +7,42 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import requests
 
-# ── Config ───────────────────────────────────────────────────────────
 st.set_page_config(page_title="Accident Risk Analyzer", page_icon="🚦", layout="wide")
 
-# ── Custom CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Base */
 html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
 .block-container { padding: 2rem 3rem !important; max-width: 1200px; }
 section[data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #e2e8f0; }
 section[data-testid="stSidebar"] .stRadio label { font-size: 15px; font-weight: 500; }
 header[data-testid="stHeader"] { background: transparent; }
 
-/* Card */
 .card {
-    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;
+    background: var(--secondary-background-color, #ffffff); 
+    border: 1px solid var(--border-color, #e2e8f0); 
+    border-radius: 16px;
     padding: 28px; margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    color: var(--text-color, #1e293b);
 }
 
-/* Hero */
 .hero { text-align: center; padding: 48px 20px 36px; }
-.hero h1 { font-size: 3rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.15; }
+.hero h1 { font-size: 3rem; font-weight: 800; color: var(--text-color, #0f172a); margin: 0; line-height: 1.15; }
 .hero .accent { background: linear-gradient(135deg, #2563eb, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.hero p { font-size: 1.1rem; color: #64748b; margin-top: 16px; max-width: 560px; margin-left: auto; margin-right: auto; }
+.hero p { font-size: 1.1rem; color: var(--text-color, #64748b); opacity: 0.85; margin-top: 16px; max-width: 560px; margin-left: auto; margin-right: auto; }
 
-/* Stat card */
 .stat-card {
-    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
+    background: var(--secondary-background-color, #ffffff); 
+    border: 1px solid var(--border-color, #e2e8f0); 
+    border-radius: 14px;
     padding: 22px; text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.stat-card .value { font-size: 2rem; font-weight: 700; color: #0f172a; }
+.stat-card .value { font-size: 2rem; font-weight: 700; color: var(--text-color, #0f172a); }
 .stat-card .label { font-size: 0.8rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
 
-/* Alert boxes */
 .alert-low { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; text-align: center; }
 .alert-low .level { font-size: 1.8rem; font-weight: 700; color: #16a34a; }
 .alert-med { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; text-align: center; }
@@ -57,47 +50,42 @@ header[data-testid="stHeader"] { background: transparent; }
 .alert-high { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px; text-align: center; }
 .alert-high .level { font-size: 1.8rem; font-weight: 700; color: #dc2626; }
 
-/* Section */
 .section-title { font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 4px; }
-.section-heading { font-size: 1.75rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
-.section-desc { font-size: 0.95rem; color: #64748b; margin-bottom: 24px; }
+.section-heading { font-size: 1.75rem; font-weight: 700; color: var(--text-color, #0f172a); margin-bottom: 6px; }
+.section-desc { font-size: 0.95rem; color: var(--text-color, #64748b); opacity: 0.8; margin-bottom: 24px; }
 
-/* Chart insight */
-.chart-insight { background: #f8fafc; border-left: 3px solid #2563eb; padding: 10px 14px; margin-top: 10px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: #475569; }
+.chart-insight { background: var(--secondary-background-color, #f8fafc); border-left: 3px solid #2563eb; padding: 10px 14px; margin-top: 10px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: var(--text-color, #475569); }
 
-/* Risk Score */
 .score-ring { text-align: center; padding: 32px 20px; }
 .score-ring .number { font-size: 4rem; font-weight: 800; line-height: 1; }
 .score-ring .number.low { color: #16a34a; }
 .score-ring .number.med { color: #d97706; }
 .score-ring .number.high { color: #dc2626; }
 .score-ring .label-text { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-top: 8px; }
-.breakdown-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; }
+.breakdown-card { background: var(--secondary-background-color, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 16px; text-align: center; }
 .breakdown-card .bk-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
-.breakdown-card .bk-value { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 4px; }
-.breakdown-card .bk-weight { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+.breakdown-card .bk-value { font-size: 1.1rem; font-weight: 700; color: var(--text-color, #0f172a); margin-top: 4px; }
+.breakdown-card .bk-weight { font-size: 0.8rem; color: var(--text-color, #64748b); opacity: 0.8; margin-top: 2px; }
 
-/* Recommendations */
-.reco-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 28px; margin-top: 20px; }
+.reco-card { background: var(--secondary-background-color, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 14px; padding: 24px 28px; margin-top: 20px; }
 .reco-card .reco-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 16px; }
 .reco-card .reco-title.low { color: #16a34a; }
 .reco-card .reco-title.med { color: #d97706; }
 .reco-card .reco-title.high { color: #dc2626; }
-.reco-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #334155; }
+.reco-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color, #f1f5f9); font-size: 0.9rem; color: var(--text-color, #334155); }
 .reco-item:last-child { border-bottom: none; }
 .reco-icon { flex-shrink: 0; font-size: 1rem; }
 
-/* Hide ALL Streamlit default UI chrome */
 #MainMenu, footer, .stDeployButton { display: none !important; }
 header[data-testid="stHeader"] { display: none !important; }
 button[kind="headerNoPadding"], [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stToolbar"] { display: none !important; }
 [data-testid="stStatusWidget"] { display: none !important; }
 .stSidebar button[aria-label*="Collapse"] { display: none !important; }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ── MongoDB ──────────────────────────────────────────────────────────
 load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DB = os.getenv("MONGODB_DB", "traffic_accident_db")
@@ -110,7 +98,6 @@ def get_mongo_client():
 client = get_mongo_client()
 collection = client[MONGODB_DB][MONGODB_COLLECTION]
 
-# ── Constants ────────────────────────────────────────────────────────
 TIME_OPTIONS = ["Morning", "Afternoon", "Evening", "Night"]
 WEATHER_OPTIONS = ["Clear", "Rain", "Fog"]
 ROAD_TYPE_OPTIONS = ["Highway", "City", "Rural"]
@@ -122,7 +109,6 @@ LOCATION_OPTIONS = [
     "Kochi", "Guwahati", "Dehradun", "Surat", "Visakhapatnam",
 ]
 
-# Risk score weights
 TIME_WEIGHTS = {"Morning": 20, "Afternoon": 30, "Evening": 50, "Night": 80}
 WEATHER_WEIGHTS = {"Clear": 10, "Rain": 60, "Fog": 70}
 ROAD_WEIGHTS = {"City": 30, "Highway": 70, "Rural": 50}
@@ -133,9 +119,7 @@ LOCATION_WEIGHTS = {
     "Kochi": 5, "Guwahati": 6, "Dehradun": 5, "Surat": 5, "Visakhapatnam": 4,
 }
 
-# ── Helpers ──────────────────────────────────────────────────────────
 def fetch_live_weather(city):
-    """Fetch real-time weather data using OpenWeatherMap API."""
     api_key = os.getenv("OPENWEATHER_API_KEY", "")
     if not api_key:
         return None, None
@@ -149,7 +133,6 @@ def fetch_live_weather(city):
             temp_k = data.get("main", {}).get("temp")
             temp_c = round(temp_k - 273.15) if temp_k else None
             
-            # Map to categories: Clear, Rain, Fog
             if raw_weather in ["Clear"]:
                 mapped_weather = "Clear"
             elif raw_weather in ["Rain", "Drizzle", "Thunderstorm"]:
@@ -171,8 +154,58 @@ def fetch_data():
         return pd.DataFrame(columns=["time", "weather", "road_type", "severity", "location"])
     return pd.DataFrame(docs)
 
+def display_html_table(df):
+    cols = ["time", "weather", "road_type", "location", "severity"]
+    existing_cols = [c for c in cols if c in df.columns]
+    df_subset = df[existing_cols].copy()
+    df_subset.columns = [c.replace("_", " ").title() for c in df_subset.columns]
+    html = df_subset.to_html(index=False, classes="custom-table", border=0)
+    
+    styled_html = f"""<style>
+.table-container {{
+    width: 100%;
+    overflow-x: auto;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}}
+.custom-table {{
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+}}
+.custom-table th {{
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 20px;
+    border-bottom: 1px solid #edf2f7;
+}}
+.custom-table td {{
+    padding: 14px 20px;
+    font-size: 0.9rem;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+}}
+.custom-table tr:last-child td {{
+    border-bottom: none;
+}}
+.custom-table tr:hover {{
+    background-color: #f8fafc;
+}}
+</style>
+<div class="table-container">
+    {html}
+</div>"""
+    st.markdown(styled_html, unsafe_allow_html=True)
+
 def calculate_risk_score(time_v, weather_v, road_v, location_v):
-    """Calculate risk score 0–100 from weighted inputs + location bonus."""
     t = TIME_WEIGHTS[time_v]
     w = WEATHER_WEIGHTS[weather_v]
     r = ROAD_WEIGHTS[road_v]
@@ -181,7 +214,6 @@ def calculate_risk_score(time_v, weather_v, road_v, location_v):
     return score, t, w, r, l
 
 def classify_risk(score):
-    """Map score to risk level."""
     if score <= 40:
         return "Low", "low"
     elif score <= 70:
@@ -190,10 +222,8 @@ def classify_risk(score):
         return "High", "high"
 
 def get_recommendations(time_v, weather_v, road_v, location_v, level):
-    """Generate smart safety recommendations based on conditions."""
     tips = []
 
-    # Risk-level tips
     if level == "High":
         tips.append(("🚨", "High-risk conditions detected. Avoid travel if possible."))
         tips.append(("🛑", "If travel is necessary, inform someone of your route and ETA."))
@@ -202,7 +232,6 @@ def get_recommendations(time_v, weather_v, road_v, location_v, level):
     else:
         tips.append(("✅", "Conditions are relatively safe. Follow standard driving practices."))
 
-    # Time-based tips
     if time_v == "Night":
         tips.append(("🌙", "Avoid late-night travel if possible. Visibility is significantly reduced."))
         tips.append(("💡", "Use high-beam headlights on empty roads, low-beam when traffic is near."))
@@ -211,7 +240,6 @@ def get_recommendations(time_v, weather_v, road_v, location_v, level):
     elif time_v == "Morning":
         tips.append(("🌅", "Watch for sun glare during early morning hours."))
 
-    # Weather-based tips
     if weather_v == "Rain":
         tips.append(("🌧️", "Drive slowly — roads may be slippery. Increase following distance."))
         tips.append(("🚗", "Avoid sudden braking and sharp turns on wet surfaces."))
@@ -219,7 +247,6 @@ def get_recommendations(time_v, weather_v, road_v, location_v, level):
         tips.append(("🌫️", "Use fog lights and maintain a safe following distance."))
         tips.append(("🐌", "Reduce speed significantly. Avoid overtaking other vehicles."))
 
-    # Road-type tips
     if road_v == "Highway":
         tips.append(("🛣️", "Maintain speed limits and stay alert for lane changes."))
         tips.append(("🔄", "Take regular breaks on long highway drives to avoid fatigue."))
@@ -228,7 +255,6 @@ def get_recommendations(time_v, weather_v, road_v, location_v, level):
     elif road_v == "City":
         tips.append(("🏙️", "Watch for pedestrians, cyclists, and frequent signal changes."))
 
-    # Location-based tips
     loc_tips = {
         "Mumbai": "Mumbai sees heavy monsoon rainfall — waterlogging and flooding are common. Avoid low-lying routes.",
         "Delhi": "Delhi has dense traffic, smog, and poor winter visibility. Keep safe distance and use low beams.",
@@ -256,16 +282,12 @@ def get_recommendations(time_v, weather_v, road_v, location_v, level):
 
     return tips
 
-# ── Sidebar ──────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### 🚦 Accident Risk Analyzer")
     st.markdown("<p style='color:#64748b;font-size:13px;margin-top:-10px'>Data-driven safety insights</p>", unsafe_allow_html=True)
     st.markdown("---")
     page = st.radio("Navigate", ["Home", "Predict", "Map", "Insights", "Add Data"], label_visibility="collapsed")
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# HOME
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 if page == "Home":
     st.markdown("""
     <div class="hero">
@@ -295,11 +317,8 @@ if page == "Home":
     if not df.empty:
         st.markdown("")
         st.markdown('<div class="section-title">RECENT RECORDS</div>', unsafe_allow_html=True)
-        st.dataframe(df.tail(10), use_container_width=True, hide_index=True)
+        display_html_table(df.tail(10))
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PREDICT — Risk Score System
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 elif page == "Predict":
     st.markdown('<div class="section-title">⚡ RISK ASSESSMENT</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Predict Accident Risk</div>', unsafe_allow_html=True)
@@ -315,7 +334,6 @@ elif page == "Predict":
         p_location = st.selectbox("📍 Location", LOCATION_OPTIONS)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Real-time Weather Integration ────────────────────────────────
     live_w, raw_w = fetch_live_weather(p_location)
     weather_emoji = {"Clear": "☀️", "Rain": "🌧️", "Fog": "🌫️"}
 
@@ -338,7 +356,6 @@ elif page == "Predict":
 
         st.markdown("---")
 
-        # Score display — big number + progress bar
         left, right = st.columns([1, 1])
 
         with left:
@@ -358,12 +375,9 @@ elif page == "Predict":
             </div>
             ''', unsafe_allow_html=True)
 
-        # Progress bar
         st.progress(min(score, 100))
-
         st.markdown("")
 
-        # Breakdown cards
         st.markdown('<div class="section-title" style="margin-bottom:12px">SCORE BREAKDOWN</div>', unsafe_allow_html=True)
         b1, b2, b3, b4 = st.columns(4)
         with b1:
@@ -378,7 +392,6 @@ elif page == "Predict":
         st.markdown("")
         st.markdown(f'<div class="chart-insight">💡 Score = ({t_w} + {w_w} + {r_w}) / 3 + {l_w} = <b>{score}</b> → Classification: <b>{level} Risk</b></div>', unsafe_allow_html=True)
 
-        # Smart Recommendations
         tips = get_recommendations(p_time, p_weather, p_road, p_location, level)
         items_html = "".join(
             f'<div class="reco-item"><span class="reco-icon">{icon}</span><span>{text}</span></div>'
@@ -391,9 +404,6 @@ elif page == "Predict":
         </div>
         ''', unsafe_allow_html=True)
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MAP
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 elif page == "Map":
     st.markdown('<div class="section-title">🗺️ ACCIDENT RISK MAP</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Geographical Risk Distribution</div>', unsafe_allow_html=True)
@@ -420,7 +430,6 @@ elif page == "Map":
             "Surat": [21.1702, 72.8311], "Visakhapatnam": [17.6868, 83.2185]
         }
 
-        # Create interactive map
         m = folium.Map(location=[20.5937, 78.9629], zoom_start=5)
         
         markers_added = 0
@@ -434,7 +443,6 @@ elif page == "Map":
                 
                 score, _, _, _, _ = calculate_risk_score(t_v, w_v, r_v, loc)
                 
-                # Color map ranges: 0-40 Green, 41-70 Orange, 71-100 Red
                 if score <= 40:
                     color = "#22c55e"
                 elif score <= 70:
@@ -460,9 +468,6 @@ elif page == "Map":
         else:
             st.components.v1.html(m._repr_html_(), height=550)
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# INSIGHTS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 elif page == "Insights":
     st.markdown('<div class="section-title">📊 DATA ANALYSIS</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Insights & Visualizations</div>', unsafe_allow_html=True)
@@ -473,7 +478,6 @@ elif page == "Insights":
     if df.empty:
         st.info("No data available yet. Go to **Add Data** to insert records.")
     else:
-        # Location filter
         if "location" in df.columns and not df["location"].isna().all():
             loc_filter = st.selectbox("📍 Filter by Location", ["All Locations"] + LOCATION_OPTIONS)
             if loc_filter != "All Locations":
@@ -484,7 +488,6 @@ elif page == "Insights":
                     st.stop()
         sns.set_theme(style="whitegrid", font="Inter")
 
-        # Row 1: Bar + Line
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -516,7 +519,6 @@ elif page == "Insights":
 
         st.markdown("")
 
-        # Row 2: Pie + Box
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -551,7 +553,6 @@ elif page == "Insights":
 
         st.markdown("")
 
-        # Row 3: Heatmap
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown("**🗺️ Time vs Weather — Accident Heatmap**")
         hm = pd.crosstab(df["time"], df["weather"])
@@ -563,9 +564,6 @@ elif page == "Insights":
         st.markdown('<div class="chart-insight">💡 Heatmap reveals which time-weather combinations have the most accidents.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ADD DATA
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 elif page == "Add Data":
     st.markdown('<div class="section-title">📝 DATA ENTRY</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Add New Accident Record</div>', unsafe_allow_html=True)
@@ -596,4 +594,4 @@ elif page == "Add Data":
     if not df.empty:
         st.markdown("---")
         st.markdown(f'<div class="section-title">RECENT RECORDS ({len(df)} total)</div>', unsafe_allow_html=True)
-        st.dataframe(df.tail(8), use_container_width=True, hide_index=True)
+        display_html_table(df.tail(8))
