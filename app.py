@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd
 from pymongo import MongoClient
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -67,6 +64,28 @@ header[data-testid="stHeader"] { background: transparent; }
 /* Chart insight */
 .chart-insight { background: #f8fafc; border-left: 3px solid #2563eb; padding: 10px 14px; margin-top: 10px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: #475569; }
 
+/* Risk Score */
+.score-ring { text-align: center; padding: 32px 20px; }
+.score-ring .number { font-size: 4rem; font-weight: 800; line-height: 1; }
+.score-ring .number.low { color: #16a34a; }
+.score-ring .number.med { color: #d97706; }
+.score-ring .number.high { color: #dc2626; }
+.score-ring .label-text { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-top: 8px; }
+.breakdown-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; }
+.breakdown-card .bk-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
+.breakdown-card .bk-value { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 4px; }
+.breakdown-card .bk-weight { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+
+/* Recommendations */
+.reco-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 28px; margin-top: 20px; }
+.reco-card .reco-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 16px; }
+.reco-card .reco-title.low { color: #16a34a; }
+.reco-card .reco-title.med { color: #d97706; }
+.reco-card .reco-title.high { color: #dc2626; }
+.reco-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #334155; }
+.reco-item:last-child { border-bottom: none; }
+.reco-icon { flex-shrink: 0; font-size: 1rem; }
+
 /* Hide ALL Streamlit default UI chrome */
 #MainMenu, footer, .stDeployButton { display: none !important; }
 header[data-testid="stHeader"] { display: none !important; }
@@ -95,8 +114,11 @@ TIME_OPTIONS = ["Morning", "Afternoon", "Evening", "Night"]
 WEATHER_OPTIONS = ["Clear", "Rain", "Fog"]
 ROAD_TYPE_OPTIONS = ["Highway", "City", "Rural"]
 SEVERITY_OPTIONS = ["Low", "Medium", "High"]
-TARGET_MAP = {"Low": 0, "Medium": 1, "High": 2}
-INV_MAP = {0: "Low", 1: "Medium", 2: "High"}
+
+# Risk score weights
+TIME_WEIGHTS = {"Morning": 20, "Afternoon": 30, "Evening": 50, "Night": 80}
+WEATHER_WEIGHTS = {"Clear": 10, "Rain": 60, "Fog": 70}
+ROAD_WEIGHTS = {"City": 30, "Highway": 70, "Rural": 50}
 
 # ── Helpers ──────────────────────────────────────────────────────────
 def fetch_data():
@@ -105,21 +127,63 @@ def fetch_data():
         return pd.DataFrame(columns=["time", "weather", "road_type", "severity"])
     return pd.DataFrame(docs)
 
-def train_model(df):
-    X = pd.get_dummies(df[["time", "weather", "road_type"]])
-    y = df["severity"].map(TARGET_MAP)
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42)
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_tr, y_tr)
-    acc = accuracy_score(y_te, model.predict(X_te))
-    return model, list(X.columns), acc
+def calculate_risk_score(time_v, weather_v, road_v):
+    """Calculate risk score 0–100 from weighted inputs."""
+    t = TIME_WEIGHTS[time_v]
+    w = WEATHER_WEIGHTS[weather_v]
+    r = ROAD_WEIGHTS[road_v]
+    score = round((t + w + r) / 3)
+    return score, t, w, r
 
-def predict(model, cols, time_v, weather_v, road_v):
-    inp = pd.get_dummies(pd.DataFrame([{"time": time_v, "weather": weather_v, "road_type": road_v}]))
-    for c in cols:
-        if c not in inp.columns:
-            inp[c] = 0
-    return INV_MAP[model.predict(inp[cols])[0]]
+def classify_risk(score):
+    """Map score to risk level."""
+    if score <= 40:
+        return "Low", "low"
+    elif score <= 70:
+        return "Medium", "med"
+    else:
+        return "High", "high"
+
+def get_recommendations(time_v, weather_v, road_v, level):
+    """Generate smart safety recommendations based on conditions."""
+    tips = []
+
+    # Risk-level tips
+    if level == "High":
+        tips.append(("🚨", "High-risk conditions detected. Avoid travel if possible."))
+        tips.append(("🛑", "If travel is necessary, inform someone of your route and ETA."))
+    elif level == "Medium":
+        tips.append(("⚠️", "Moderate risk detected. Exercise extra caution while driving."))
+    else:
+        tips.append(("✅", "Conditions are relatively safe. Follow standard driving practices."))
+
+    # Time-based tips
+    if time_v == "Night":
+        tips.append(("🌙", "Avoid late-night travel if possible. Visibility is significantly reduced."))
+        tips.append(("💡", "Use high-beam headlights on empty roads, low-beam when traffic is near."))
+    elif time_v == "Evening":
+        tips.append(("🌆", "Be cautious during peak traffic hours. Stay alert for sudden stops."))
+    elif time_v == "Morning":
+        tips.append(("🌅", "Watch for sun glare during early morning hours."))
+
+    # Weather-based tips
+    if weather_v == "Rain":
+        tips.append(("🌧️", "Drive slowly — roads may be slippery. Increase following distance."))
+        tips.append(("🚗", "Avoid sudden braking and sharp turns on wet surfaces."))
+    elif weather_v == "Fog":
+        tips.append(("🌫️", "Use fog lights and maintain a safe following distance."))
+        tips.append(("🐌", "Reduce speed significantly. Avoid overtaking other vehicles."))
+
+    # Road-type tips
+    if road_v == "Highway":
+        tips.append(("🛣️", "Maintain speed limits and stay alert for lane changes."))
+        tips.append(("🔄", "Take regular breaks on long highway drives to avoid fatigue."))
+    elif road_v == "Rural":
+        tips.append(("🏔️", "Watch for unmarked roads, sharp curves, and wildlife."))
+    elif road_v == "City":
+        tips.append(("🏙️", "Watch for pedestrians, cyclists, and frequent signal changes."))
+
+    return tips
 
 # ── Sidebar ──────────────────────────────────────────────────────────
 with st.sidebar:
@@ -163,45 +227,82 @@ if page == "Home":
         st.dataframe(df.tail(10), use_container_width=True, hide_index=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PREDICT
+# PREDICT — Risk Score System
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 elif page == "Predict":
     st.markdown('<div class="section-title">⚡ RISK ASSESSMENT</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-heading">Predict Accident Severity</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-desc">Select conditions to predict severity using a RandomForest model trained on your live data.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Predict Accident Risk</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-desc">Select conditions below to calculate a risk score (0–100) based on weighted analysis of time, weather, and road type.</div>', unsafe_allow_html=True)
 
-    df = fetch_data()
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
+    with c2:
+        p_weather = st.selectbox("🌤️ Weather", WEATHER_OPTIONS)
+    with c3:
+        p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if len(df) < 5:
-        st.warning(f"⚠️ Need at least **5 records** to train the model. Currently: **{len(df)}**. Go to **Add Data** first.")
-    else:
-        model, feat_cols, acc = train_model(df)
-        st.info(f"📈 Model trained on **{len(df)} records** — Accuracy: **{acc:.0%}**")
+    if st.button("🔍 Predict Risk", use_container_width=True):
+        score, t_w, w_w, r_w = calculate_risk_score(p_time, p_weather, p_road)
+        level, css_key = classify_risk(score)
+
+        risk_emoji = {"Low": "✅", "Medium": "⚠️", "High": "🚨"}
+        css_class = {"Low": "alert-low", "Medium": "alert-med", "High": "alert-high"}
+
         st.markdown("---")
 
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
-        with c2:
-            p_weather = st.selectbox("🌤️ Weather", WEATHER_OPTIONS)
-        with c3:
-            p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Score display — big number + progress bar
+        left, right = st.columns([1, 1])
 
-        if st.button("🔍 Predict Risk", use_container_width=True):
-            result = predict(model, feat_cols, p_time, p_weather, p_road)
-            risk_map = {"Low": "Low Risk ✅", "Medium": "Moderate Risk ⚠️", "High": "High Risk 🚨"}
-            css_class = {"Low": "alert-low", "Medium": "alert-med", "High": "alert-high"}
+        with left:
+            st.markdown(f'''
+            <div class="card score-ring">
+                <div class="label-text">Risk Score</div>
+                <div class="number {css_key}">{score}</div>
+                <div class="label-text" style="margin-top:4px">out of 100</div>
+            </div>
+            ''', unsafe_allow_html=True)
 
-            st.markdown("---")
-            r1, r2 = st.columns(2)
-            with r1:
-                st.markdown(f'<div class="{css_class[result]}"><div style="font-size:0.8rem;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Predicted Severity</div><div class="level">{result}</div></div>', unsafe_allow_html=True)
-            with r2:
-                st.markdown(f'<div class="{css_class[result]}"><div style="font-size:0.8rem;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Risk Level</div><div class="level">{risk_map[result]}</div></div>', unsafe_allow_html=True)
+        with right:
+            st.markdown(f'''
+            <div class="{css_class[level]}" style="padding:32px 20px;text-align:center;height:100%">
+                <div style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;margin-bottom:8px">Risk Level</div>
+                <div class="level">{risk_emoji[level]} {level} Risk</div>
+            </div>
+            ''', unsafe_allow_html=True)
 
-            st.markdown(f"<p style='text-align:center;color:#64748b;margin-top:16px'>Conditions: <b>{p_time}</b> · <b>{p_weather}</b> · <b>{p_road}</b></p>", unsafe_allow_html=True)
+        # Progress bar
+        st.progress(min(score, 100))
+
+        st.markdown("")
+
+        # Breakdown cards
+        st.markdown('<div class="section-title" style="margin-bottom:12px">SCORE BREAKDOWN</div>', unsafe_allow_html=True)
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            st.markdown(f'<div class="breakdown-card"><div class="bk-label">🕐 Time</div><div class="bk-value">{p_time}</div><div class="bk-weight">Weight: {t_w}/80</div></div>', unsafe_allow_html=True)
+        with b2:
+            st.markdown(f'<div class="breakdown-card"><div class="bk-label">🌤️ Weather</div><div class="bk-value">{p_weather}</div><div class="bk-weight">Weight: {w_w}/70</div></div>', unsafe_allow_html=True)
+        with b3:
+            st.markdown(f'<div class="breakdown-card"><div class="bk-label">🛣️ Road Type</div><div class="bk-value">{p_road}</div><div class="bk-weight">Weight: {r_w}/70</div></div>', unsafe_allow_html=True)
+
+        st.markdown("")
+        st.markdown(f'<div class="chart-insight">💡 Score = ({t_w} + {w_w} + {r_w}) / 3 = <b>{score}</b> → Classification: <b>{level} Risk</b></div>', unsafe_allow_html=True)
+
+        # Smart Recommendations
+        tips = get_recommendations(p_time, p_weather, p_road, level)
+        items_html = "".join(
+            f'<div class="reco-item"><span class="reco-icon">{icon}</span><span>{text}</span></div>'
+            for icon, text in tips
+        )
+        st.markdown(f'''
+        <div class="reco-card">
+            <div class="reco-title {css_key}">🛡️ Safety Recommendations</div>
+            {items_html}
+        </div>
+        ''', unsafe_allow_html=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # INSIGHTS
