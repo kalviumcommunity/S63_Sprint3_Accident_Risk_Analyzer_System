@@ -11,7 +11,7 @@ export default function Insights() {
             📊 Data Analysis
           </p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-4xl">
-            Insights &amp; Visualizations
+            Insights & Visualizations
           </h1>
           <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-500">
             Explore accident distributions across time, weather, and severity
