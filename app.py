@@ -13,7 +13,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
+html, body { font-family: 'Inter', sans-serif; }
 .block-container { padding: 2rem 3rem !important; max-width: 1200px; }
 section[data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #e2e8f0; }
 section[data-testid="stSidebar"] .stRadio label { font-size: 15px; font-weight: 500; }
@@ -471,98 +471,132 @@ elif page == "Map":
 elif page == "Insights":
     st.markdown('<div class="section-title">📊 DATA ANALYSIS</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Insights & Visualizations</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-desc">Explore accident patterns from your live MongoDB data.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-desc">Explore accident patterns with dynamic analytical tools.</div>', unsafe_allow_html=True)
 
     df = fetch_data()
 
     if df.empty:
         st.info("No data available yet. Go to **Add Data** to insert records.")
     else:
-        if "location" in df.columns and not df["location"].isna().all():
-            loc_filter = st.selectbox("📍 Filter by Location", ["All Locations"] + LOCATION_OPTIONS)
-            if loc_filter != "All Locations":
-                df = df[df["location"] == loc_filter]
-                st.markdown(f"<p style='color:#2563eb;font-weight:600'>📍 Showing data for: {loc_filter} ({len(df)} records)</p>", unsafe_allow_html=True)
-                if df.empty:
-                    st.info(f"No records found for {loc_filter}. Add some data first.")
-                    st.stop()
-        sns.set_theme(style="whitegrid", font="Inter")
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("**🌤️ Accidents by Weather**")
-            fig, ax = plt.subplots(figsize=(5, 3.5))
-            sns.countplot(data=df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
-            ax.set_xlabel(""); ax.set_ylabel("Count")
-            for spine in ax.spines.values(): spine.set_visible(False)
-            plt.tight_layout()
-            st.pyplot(fig)
-            top_w = df["weather"].value_counts().idxmax()
-            st.markdown(f'<div class="chart-insight">💡 <b>{top_w}</b> is the most common weather condition in recorded accidents.</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with c2:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("**🕐 Accident Trend by Time**")
-            time_counts = df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
-            fig2, ax2 = plt.subplots(figsize=(5, 3.5))
-            ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
-            ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
-            ax2.set_xlabel(""); ax2.set_ylabel("Count")
-            for spine in ax2.spines.values(): spine.set_visible(False)
-            plt.tight_layout()
-            st.pyplot(fig2)
-            peak = time_counts.idxmax()
-            st.markdown(f'<div class="chart-insight">💡 <b>{peak}</b> has the highest accident count, indicating elevated risk.</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown("")
-
-        c3, c4 = st.columns(2)
-        with c3:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("**⚠️ Severity Distribution**")
-            fig3, ax3 = plt.subplots(figsize=(5, 3.5))
-            sev = df["severity"].value_counts()
-            colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
-            ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
-                    colors=[colors.get(l, "#94a3b8") for l in sev.index],
-                    startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"})
-            plt.tight_layout()
-            st.pyplot(fig3)
-            top_s = sev.idxmax()
-            st.markdown(f'<div class="chart-insight">💡 <b>{top_s}</b> severity is most frequent in the current dataset.</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with c4:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("**📦 Severity by Road Type (Box Plot)**")
-            sev_map = {"Low": 1, "Medium": 2, "High": 3}
-            df_box = df.copy()
-            df_box["severity_code"] = df_box["severity"].map(sev_map)
-            fig4, ax4 = plt.subplots(figsize=(5, 3.5))
-            sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
-                        palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
-            ax4.set_xlabel(""); ax4.set_ylabel("Severity (1=Low, 3=High)")
-            for spine in ax4.spines.values(): spine.set_visible(False)
-            plt.tight_layout()
-            st.pyplot(fig4)
-            st.markdown('<div class="chart-insight">💡 Box plot shows severity score spread and potential outliers per road type.</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown("")
-
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("**🗺️ Time vs Weather — Accident Heatmap**")
-        hm = pd.crosstab(df["time"], df["weather"])
-        fig5, ax5 = plt.subplots(figsize=(8, 3.5))
-        sns.heatmap(hm, annot=True, fmt="d", cmap="Blues", ax=ax5, linewidths=1, linecolor="white")
-        ax5.set_xlabel(""); ax5.set_ylabel("")
-        plt.tight_layout()
-        st.pyplot(fig5)
-        st.markdown('<div class="chart-insight">💡 Heatmap reveals which time-weather combinations have the most accidents.</div>', unsafe_allow_html=True)
+        st.markdown("<h4 style='margin-top:0;'>🔍 Data Filters</h4>", unsafe_allow_html=True)
+        f1, f2, f3, f4, f5 = st.columns(5)
+        with f1:
+            loc_filter = st.selectbox("Location", ["All"] + LOCATION_OPTIONS)
+        with f2:
+            time_filter = st.selectbox("Time", ["All"] + TIME_OPTIONS)
+        with f3:
+            weather_filter = st.selectbox("Weather", ["All"] + WEATHER_OPTIONS)
+        with f4:
+            road_filter = st.selectbox("Road Type", ["All"] + ROAD_TYPE_OPTIONS)
+        with f5:
+            sev_filter = st.selectbox("Severity", ["All"] + SEVERITY_OPTIONS)
+
+        search_q = st.text_input("🔍 Search records (e.g. 'Delhi', 'Rain')", placeholder="Type to search all columns...")
         st.markdown('</div>', unsafe_allow_html=True)
+
+        filtered_df = df.copy()
+        if loc_filter != "All":
+            filtered_df = filtered_df[filtered_df["location"] == loc_filter]
+        if time_filter != "All":
+            filtered_df = filtered_df[filtered_df["time"] == time_filter]
+        if weather_filter != "All":
+            filtered_df = filtered_df[filtered_df["weather"] == weather_filter]
+        if road_filter != "All":
+            filtered_df = filtered_df[filtered_df["road_type"] == road_filter]
+        if sev_filter != "All":
+            filtered_df = filtered_df[filtered_df["severity"] == sev_filter]
+
+        if search_q:
+            mask = filtered_df.apply(lambda r: r.astype(str).str.contains(search_q, case=False).any(), axis=1)
+            filtered_df = filtered_df[mask]
+
+        if filtered_df.empty:
+            st.warning("No matching records found matching the search/filter criteria.")
+        else:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("📊 Total Records", len(filtered_df))
+            with m2:
+                st.metric("🚨 High Risk", len(filtered_df[filtered_df["severity"] == "High"]))
+            with m3:
+                st.metric("⚠️ Medium Risk", len(filtered_df[filtered_df["severity"] == "Medium"]))
+            with m4:
+                st.metric("✅ Low Risk", len(filtered_df[filtered_df["severity"] == "Low"]))
+            
+            csv = filtered_df.to_csv(index=False).encode('utf-8')
+            st.download_button(label="📥 Download Filtered Data as CSV", data=csv, file_name="filtered_accident_data.csv", mime="text/csv", use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            sns.set_theme(style="whitegrid", font="Inter")
+
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("**🌤️ Accidents by Weather**")
+                fig, ax = plt.subplots(figsize=(5, 3.5))
+                sns.countplot(data=filtered_df, x="weather", order=WEATHER_OPTIONS, palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax)
+                ax.set_xlabel(""); ax.set_ylabel("Count")
+                for spine in ax.spines.values(): spine.set_visible(False)
+                plt.tight_layout()
+                st.pyplot(fig)
+                st.markdown('<div class="chart-insight">💡 Live dataset counts plotted against core weather categories.</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            with c2:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("**🕐 Accident Trend by Time**")
+                time_counts = filtered_df["time"].value_counts().reindex(TIME_OPTIONS, fill_value=0)
+                fig2, ax2 = plt.subplots(figsize=(5, 3.5))
+                ax2.plot(time_counts.index, time_counts.values, marker="o", linewidth=2.5, color="#2563eb", markersize=8)
+                ax2.fill_between(time_counts.index, time_counts.values, alpha=0.08, color="#2563eb")
+                ax2.set_xlabel(""); ax2.set_ylabel("Count")
+                for spine in ax2.spines.values(): spine.set_visible(False)
+                plt.tight_layout()
+                st.pyplot(fig2)
+                st.markdown('<div class="chart-insight">💡 Visual trends shifting across morning vs evening peaks.</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown("")
+
+            c3, c4 = st.columns(2)
+            with c3:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("**⚠️ Severity Distribution**")
+                fig3, ax3 = plt.subplots(figsize=(5, 3.5))
+                sev = filtered_df["severity"].value_counts()
+                colors = {"Low": "#22c55e", "Medium": "#f59e0b", "High": "#ef4444"}
+                ax3.pie(sev.values, labels=sev.index, autopct="%1.0f%%",
+                        colors=[colors.get(l, "#94a3b8") for l in sev.index],
+                        startangle=90, wedgeprops={"linewidth": 2, "edgecolor": "white"})
+                plt.tight_layout()
+                st.pyplot(fig3)
+                st.markdown('<div class="chart-insight">💡 Breakdown percentages comparing severity scales.</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            with c4:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("**📦 Severity by Road Type (Box Plot)**")
+                sev_map = {"Low": 1, "Medium": 2, "High": 3}
+                df_box = filtered_df.copy()
+                df_box["severity_code"] = df_box["severity"].map(sev_map)
+                fig4, ax4 = plt.subplots(figsize=(5, 3.5))
+                sns.boxplot(data=df_box, x="road_type", y="severity_code", order=ROAD_TYPE_OPTIONS,
+                            palette=["#3b82f6","#06b6d4","#8b5cf6"], ax=ax4)
+                ax4.set_xlabel(""); ax4.set_ylabel("Severity (1=Low, 3=High)")
+                for spine in ax4.spines.values(): spine.set_visible(False)
+                plt.tight_layout()
+                st.pyplot(fig4)
+                st.markdown('<div class="chart-insight">💡 Median score ranges defined natively per road category.</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown("")
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown("<h4 style='margin-top:0;'>📋 Filtered Data Workspace</h4>", unsafe_allow_html=True)
+            st.dataframe(filtered_df, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
 
 elif page == "Add Data":
     st.markdown('<div class="section-title">📝 DATA ENTRY</div>', unsafe_allow_html=True)
