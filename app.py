@@ -323,16 +323,14 @@ elif page == "Predict":
     st.markdown('<div class="section-title">⚡ RISK ASSESSMENT</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-heading">Predict Accident Risk</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-desc">Select conditions below to calculate a risk score (0–100) based on weighted analysis of time, weather, road type, and location.</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
-    with c2:
-        p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
-    with c3:
-        p_location = st.selectbox("📍 Location", LOCATION_OPTIONS)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            p_time = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
+        with c2:
+            p_road = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
+        with c3:
+            p_location = st.selectbox("📍 Location", LOCATION_OPTIONS)
 
     live_w, raw_w = fetch_live_weather(p_location)
     weather_emoji = {"Clear": "☀️", "Rain": "🌧️", "Fog": "🌫️"}
@@ -478,22 +476,21 @@ elif page == "Insights":
     if df.empty:
         st.info("No data available yet. Go to **Add Data** to insert records.")
     else:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("<h4 style='margin-top:0;'>🔍 Data Filters</h4>", unsafe_allow_html=True)
-        f1, f2, f3, f4, f5 = st.columns(5)
-        with f1:
-            loc_filter = st.selectbox("Location", ["All"] + LOCATION_OPTIONS)
-        with f2:
-            time_filter = st.selectbox("Time", ["All"] + TIME_OPTIONS)
-        with f3:
-            weather_filter = st.selectbox("Weather", ["All"] + WEATHER_OPTIONS)
-        with f4:
-            road_filter = st.selectbox("Road Type", ["All"] + ROAD_TYPE_OPTIONS)
-        with f5:
-            sev_filter = st.selectbox("Severity", ["All"] + SEVERITY_OPTIONS)
+        with st.container(border=True):
+            st.markdown("<h4 style='margin-top:0;'>🔍 Data Filters</h4>", unsafe_allow_html=True)
+            f1, f2, f3, f4, f5 = st.columns(5)
+            with f1:
+                loc_filter = st.selectbox("Location", ["All"] + LOCATION_OPTIONS)
+            with f2:
+                time_filter = st.selectbox("Time", ["All"] + TIME_OPTIONS)
+            with f3:
+                weather_filter = st.selectbox("Weather", ["All"] + WEATHER_OPTIONS)
+            with f4:
+                road_filter = st.selectbox("Road Type", ["All"] + ROAD_TYPE_OPTIONS)
+            with f5:
+                sev_filter = st.selectbox("Severity", ["All"] + SEVERITY_OPTIONS)
 
-        search_q = st.text_input("🔍 Search records (e.g. 'Delhi', 'Rain')", placeholder="Type to search all columns...")
-        st.markdown('</div>', unsafe_allow_html=True)
+            search_q = st.text_input("🔍 Search records (e.g. 'Delhi', 'Rain')", placeholder="Type to search all columns...")
 
         filtered_df = df.copy()
         if loc_filter != "All":
@@ -592,10 +589,9 @@ elif page == "Insights":
                 st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown("")
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("<h4 style='margin-top:0;'>📋 Filtered Data Workspace</h4>", unsafe_allow_html=True)
-            st.dataframe(filtered_df, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("<h4 style='margin-top:0;'>📋 Filtered Data Workspace</h4>", unsafe_allow_html=True)
+                st.dataframe(filtered_df, use_container_width=True)
 
 
 elif page == "Add Data":
@@ -603,19 +599,23 @@ elif page == "Add Data":
     st.markdown('<div class="section-heading">Add New Accident Record</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-desc">Enter accident details below. Records are saved instantly to MongoDB Atlas.</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    with st.form("add_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            time_v = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
-            weather_v = st.selectbox("🌤️ Weather Condition", WEATHER_OPTIONS)
-            location_v = st.selectbox("📍 Location", LOCATION_OPTIONS)
-        with c2:
-            road_v = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
-            severity_v = st.selectbox("⚠️ Severity Level", SEVERITY_OPTIONS)
+    with st.container(border=True):
+        with st.form("add_form", clear_on_submit=True):
+            row1_col1, row1_col2 = st.columns(2)
+            with row1_col1:
+                time_v = st.selectbox("🕐 Time of Day", TIME_OPTIONS)
+            with row1_col2:
+                weather_v = st.selectbox("🌤️ Weather Condition", WEATHER_OPTIONS)
 
-        submitted = st.form_submit_button("➕ Add Record", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+            row2_col1, row2_col2, row2_col3 = st.columns(3)
+            with row2_col1:
+                road_v = st.selectbox("🛣️ Road Type", ROAD_TYPE_OPTIONS)
+            with row2_col2:
+                severity_v = st.selectbox("⚠️ Severity Level", SEVERITY_OPTIONS)
+            with row2_col3:
+                location_v = st.selectbox("📍 Location", LOCATION_OPTIONS)
+
+            submitted = st.form_submit_button("➕ Add Record", use_container_width=True)
 
     if submitted:
         try:
